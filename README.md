@@ -208,7 +208,7 @@ The tool can work with pre-existing files placed in `input/` directories, or aut
 
 ## Notes
 
-- Hydro-conditioned DEM created using [whitebox least-cost breaching](https://www.whiteboxgeo.com/manuals/api/python/api-tools-reference.html?highlight=least%20cost%20fill#breach_depressions_least_cost))
+- Hydro-conditioned DEM created using [whitebox least-cost breaching](https://www.whiteboxgeo.com/manuals/api/python/api-tools-reference.html?highlight=least%20cost%20fill#breach_depressions_least_cost)
 
 ## Contact
 

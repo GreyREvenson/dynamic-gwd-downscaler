@@ -135,7 +135,8 @@ output/
 │   ├── twi_mean.tiff # Mean TWI by soil map unit
 │   ├── facc_ncells.tiff # Flow accumulation (cells)
 │   ├── facc_sca.tiff # Specific Catchment Area (m²/m)
-│   ├── dem_breached.tiff # Processed DEM with stream burn
+│   ├── dem.tiff # Unmodified DEM
+│   ├── dem_breached.tiff # hydro-conditioned DEM (via. [whitebox least-cost breaching](https://www.whiteboxgeo.com/manuals/api/python/api-tools-reference.html?highlight=least%20cost%20fill#breach_depressions_least_cost))
 │   ├── slope.tiff    # Terrain slope
 │   ├── soil_texture.gpkg # Downsampled soil data
 │   ├── soil_transmissivity.gpkg # Soil transmissivity (saturated conductivity × thickness)

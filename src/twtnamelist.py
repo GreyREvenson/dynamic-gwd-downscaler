@@ -1,4 +1,13 @@
-import os,sys,rasterio,yaml,datetime,numpy
+import logging
+import os
+import sys
+from pathlib import Path
+import rasterio
+import yaml
+import datetime
+import numpy
+
+logger = logging.getLogger(__name__)
 
 class Namelist:
 
@@ -68,215 +77,124 @@ class Namelist:
         self._set_f_names()
 
     def _set_d_names(self):
-        self.dirnames.input             = os.path.join(self.dirnames.project, 'input')
-        self.dirnames.output            = os.path.join(self.dirnames.project, 'output')
-        self.dirnames.wtd_raw           = os.path.join(self.dirnames.input,'wtd','raw')
-        self.dirnames.wtd_resampled     = os.path.join(self.dirnames.input,'wtd','resampled')
-        self.dirnames.output_raw        = os.path.join(self.dirnames.output,'raw')
-        self.dirnames.output_summary    = os.path.join(self.dirnames.output,'summary')
+        self.dirnames.input             = self.dirnames.project / 'input'
+        self.dirnames.output            = self.dirnames.project / 'output'
+        self.dirnames.wtd_raw           = self.dirnames.input / 'wtd' / 'raw'
+        self.dirnames.wtd_resampled     = self.dirnames.input / 'wtd' / 'resampled'
+        self.dirnames.output_raw        = self.dirnames.output / 'raw'
+        self.dirnames.output_summary    = self.dirnames.output / 'summary'
 
     def _set_f_names(self):
-        self.fnames.domain              = os.path.join(self.dirnames.input, 'domain.gpkg')
-        self.fnames.domain_buf          = os.path.join(self.dirnames.input, 'domain_buf.gpkg')
-        self.fnames.dem                 = os.path.join(self.dirnames.input, 'dem.tiff')
-        self.fnames.dem_breached        = os.path.join(self.dirnames.input, 'dem_breached.tiff')
-        self.fnames.twi                 = os.path.join(self.dirnames.input, 'twi.tiff')
-        self.fnames.twi_mean            = os.path.join(self.dirnames.input, 'twi_mean.tiff')
-        self.fnames.soil_texture        = os.path.join(self.dirnames.input, 'soil_texture.gpkg')
-        self.fnames.soil_transmissivity = os.path.join(self.dirnames.input, 'soil_transmissivity.tiff')
-        self.fnames.facc_ncells         = os.path.join(self.dirnames.input, 'facc_ncells.tiff')
-        self.fnames.facc_sca            = os.path.join(self.dirnames.input, 'facc_sca.tiff')
-        self.fnames.stream_mask         = os.path.join(self.dirnames.input, 'stream_mask.tiff')
-        self.fnames.slope               = os.path.join(self.dirnames.input, 'slope.tiff')
-        self.fnames.nhdp                = os.path.join(self.dirnames.input, 'nhdp_flowlines.gpkg')
+        self.fnames.domain              = self.dirnames.input / 'domain.gpkg'
+        self.fnames.domain_buf          = self.dirnames.input / 'domain_buf.gpkg'
+        self.fnames.dem                 = self.dirnames.input / 'dem.tiff'
+        self.fnames.dem_breached        = self.dirnames.input / 'dem_breached.tiff'
+        self.fnames.twi                 = self.dirnames.input / 'twi.tiff'
+        self.fnames.twi_mean            = self.dirnames.input / 'twi_mean.tiff'
+        self.fnames.soil_texture        = self.dirnames.input / 'soil_texture.gpkg'
+        self.fnames.soil_transmissivity = self.dirnames.input / 'soil_transmissivity.tiff'
+        self.fnames.facc_ncells         = self.dirnames.input / 'facc_ncells.tiff'
+        self.fnames.facc_sca            = self.dirnames.input / 'facc_sca.tiff'
+        self.fnames.stream_mask         = self.dirnames.input / 'stream_mask.tiff'
+        self.fnames.slope               = self.dirnames.input / 'slope.tiff'
+        self.fnames.nhdp                = self.dirnames.input / 'nhdp_flowlines.gpkg'
 
     def read_inputyaml(self,fname:str):
-        self.fnames.namlistyaml = fname
-        with open(self.fnames.namlistyaml,'r') as yamlf:
-            try: 
-                return yaml.safe_load(yamlf)
-            except yaml.YAMLError as yerr: 
-                print(yerr)
+        self.fnames.namlistyaml = Path(fname)
+        with self.fnames.namlistyaml.open('r') as yamlf:
+            try:
+                data = yaml.safe_load(yamlf)
+            except yaml.YAMLError as yerr:
+                raise RuntimeError(f"Failed to parse YAML file {self.fnames.namlistyaml}: {yerr}")
+        if data is None:
+            raise ValueError(f"YAML file {self.fnames.namlistyaml} is empty or invalid")
+        return data
 
     def _set_user_inputs(self,fname_yaml_input:str):
         """Set variables using read-in values"""
-        #
-        #
-        userinput = self.read_inputyaml(os.path.abspath(fname_yaml_input))
-        #
-        #
-        self.dirnames.project = os.path.dirname(os.path.abspath(fname_yaml_input))
-        #print(f'project directory set to: {self.dirnames.project}')
-        #
-        #
-        names_domain = ['domain_huc','domain_latlon','domain_bbox']
-        if len([name for name in names_domain if name in userinput]) == 0:
-            print(f'WARNING at least one of the required domain variables ({', '.join(names_domain)}) not found {fname_yaml_input}')
-        name_var = 'domain_huc'
-        if name_var in userinput:
-            self.options.domain_hucid = userinput[name_var]
-        name_var = 'domain_latlon'
-        if name_var in userinput:
-            self.options.domain_latlon = userinput[name_var]
-        name_var = 'domain_bbox'
-        if name_var in userinput:
-            self.options.domain_bbox = userinput[name_var]
-        #
-        #
-        name_var = 'start_date'
-        if name_var not in userinput:
-            sys.exit(f'ERROR required variable {name_var} not found {fname_yaml_input}')
+        self.dirnames.project = Path(fname_yaml_input).resolve().parent
+        logger.debug(f'project directory set to: {self.dirnames.project}')
+        userinput = self.read_inputyaml(fname_yaml_input)
+        names_domain = ['domain_huc', 'domain_latlon', 'domain_bbox']
+        if not any(name in userinput for name in names_domain):
+            logger.warning(f"At least one of the required domain variables ({', '.join(names_domain)}) not found {fname_yaml_input}")
+        if 'domain_huc' in userinput:
+            self.options.domain_hucid = userinput['domain_huc']
+        if 'domain_latlon' in userinput:
+            self.options.domain_latlon = userinput['domain_latlon']
+        if 'domain_bbox' in userinput:
+            self.options.domain_bbox = userinput['domain_bbox']
+        if 'start_date' not in userinput:
+            raise ValueError(f'ERROR required variable start_date not found {fname_yaml_input}')
         try:
-            dt = userinput[name_var].split('-')
-            dt = datetime.datetime(year=int(dt[0]),month=int(dt[1]),day=int(dt[2]))
-            self.time.start_date = dt
-        except ValueError:
-            sys.exit(f'ERROR invalid start date {userinput[name_var]} in {fname_yaml_input}')
-        #
-        #
-        name_var = 'end_date'
-        if name_var not in userinput:
-            sys.exit(f'ERROR required variable {name_var} not found {fname_yaml_input}')
+            year, month, day = [int(p) for p in str(userinput['start_date']).split('-')]
+            self.time.start_date = datetime.datetime(year=year, month=month, day=day)
+        except Exception as e:
+            raise ValueError(f'ERROR invalid start date {userinput["start_date"]} in {fname_yaml_input}: {e}')
+        if 'end_date' not in userinput:
+            raise ValueError(f'ERROR required variable end_date not found {fname_yaml_input}')
         try:
-            dt = userinput[name_var].split('-')
-            dt = datetime.datetime(year=int(dt[0]),month=int(dt[1]),day=int(dt[2]))
-            self.time.end_date = dt
-        except ValueError:
-            sys.exit(f'ERROR invalid start date {userinput[name_var]} in {fname_yaml_input}')
-        #
-        #
-        dt_dim = list()
+            year, month, day = [int(p) for p in str(userinput['end_date']).split('-')]
+            self.time.end_date = datetime.datetime(year=year, month=month, day=day)
+        except Exception as e:
+            raise ValueError(f'ERROR invalid end date {userinput["end_date"]} in {fname_yaml_input}: {e}')
+        dt_dim = []
         idt = self.time.start_date
         while idt <= self.time.end_date:
             dt_dim.append(idt)
             idt += datetime.timedelta(days=1)
         self.time.datetime_dim = numpy.array(dt_dim)
-        #
-        #
-        name_var = 'facc_strm_threshold_ncells'
-        if name_var in userinput:
+        if 'facc_strm_threshold_ncells' in userinput:
             try:
-                self.options.facc_strm_thresh_ncells = int(userinput[name_var])
+                self.options.facc_strm_thresh_ncells = int(userinput['facc_strm_threshold_ncells'])
             except ValueError:
-                sys.exit(f'ERROR invalid entry for {name_var} of {userinput[name_var]} in {fname_yaml_input}')
-        #
-        #
-        name_var = 'facc_strm_threshold_sca'
-        if name_var in userinput:
+                raise ValueError(f'ERROR invalid entry for facc_strm_threshold_ncells of {userinput["facc_strm_threshold_ncells"]} in {fname_yaml_input}')
+        if 'facc_strm_threshold_sca' in userinput:
             try:
-                self.options.facc_strm_thresh_sca = int(userinput[name_var])
+                self.options.facc_strm_thresh_sca = int(userinput['facc_strm_threshold_sca'])
             except ValueError:
-                sys.exit(f'ERROR invalid entry for {name_var} of {userinput[name_var]} in {fname_yaml_input}')
-        #
-        #
-        name_var = 'overwrite'
-        if name_var in userinput and str(userinput[name_var]).upper().find('TRUE') != -1:
-            self.options.overwrite = True
-        else:
-            self.options.overwrite = False
-        #
-        #
-        name_var = 'verbose'
-        if name_var in userinput and str(userinput[name_var]).upper().find('TRUE') != -1:
-            self.options.verbose = True
-        else:
-            self.options.verbose = False
-        #
-        #
-        name_var = 'wtd_resample_method'
-        if name_var in userinput:
-            if str(userinput[name_var]).lower().find('bilinear') != -1:
+                raise ValueError(f'ERROR invalid entry for facc_strm_threshold_sca of {userinput["facc_strm_threshold_sca"]} in {fname_yaml_input}')
+        self.options.overwrite = str(userinput.get('overwrite', '')).upper().find('TRUE') != -1
+        self.options.verbose = str(userinput.get('verbose', '')).upper().find('TRUE') != -1
+        if 'wtd_resample_method' in userinput:
+            method = str(userinput['wtd_resample_method']).lower()
+            if 'bilinear' in method:
                 self.options.resample_method = rasterio.enums.Resampling.bilinear
-            elif str(userinput[name_var]).lower().find('cubic') != -1:
+            elif 'cubic' in method:
                 self.options.resample_method = rasterio.enums.Resampling.cubic
-            elif str(userinput[name_var]).lower().find('nearest') != -1:
+            elif 'nearest' in method:
                 self.options.resample_method = rasterio.enums.Resampling.nearest
             else:
-                sys.exit(f'ERROR invalid wtd resample method {userinput[name_var]} in {fname_yaml_input}')
+                raise ValueError(f'ERROR invalid wtd resample method {userinput["wtd_resample_method"]} in {fname_yaml_input}')
         else:
             self.options.resample_method = rasterio.enums.Resampling.bilinear
-        #
-        #
-        name_var = 'hf_hydrodata_un'
-        if name_var in userinput:
+        if 'hf_hydrodata_un' in userinput:
+            self.options.hf_hydrodata_un = userinput['hf_hydrodata_un']
+        if 'hf_hydrodata_pin' in userinput:
+            self.options.hf_hydrodata_pin = userinput['hf_hydrodata_pin']
+        self.options.write_wtd_resampled = str(userinput.get('write_wtd_resampled', '')).upper().find('TRUE') != -1
+        if 'dem_rez' in userinput:
             try:
-                self.options.hf_hydrodata_un = userinput[name_var]
+                self.options.dem_rez = float(userinput['dem_rez'])
             except ValueError:
-                sys.exit(f'ERROR invalid {name_var} {userinput[name_var]} in {fname_yaml_input}')
-        #
-        #
-        name_var = 'hf_hydrodata_pin'
-        if name_var in userinput:
-            try:
-                self.options.hf_hydrodata_pin = userinput[name_var]
-            except ValueError:
-                sys.exit(f'ERROR invalid {name_var} {userinput[name_var]} in {fname_yaml_input}')
-        #
-        #
-        name_var = 'write_wtd_resampled'
-        if name_var in userinput and str(userinput[name_var]).upper().find('TRUE') != -1:
-            self.options.write_wtd_resampled = True
-        else:
-            self.options.write_wtd_resampled = False
-        #
-        #
-        name_var = 'dem_rez'
-        if name_var in userinput:
-            try:
-                self.options.dem_rez = float(userinput[name_var])
-            except ValueError:
-                sys.exit(f'ERROR invalid {name_var} {userinput[name_var]} in {fname_yaml_input}')
-        #
-        #
-        name_var = 'verbose_wbe'
-        if name_var in userinput and str(userinput[name_var]).upper().find('TRUE') != -1:
-            self.options.verbose_wbe = True
-        else:
-            self.options.verbose_wbe = False
-        #
-        #
-        name_var = 'conus1_download_dir'
-        if name_var in userinput:
-            try:
-                self.options.conus1_download_dir = userinput[name_var]
-                if not os.path.isdir(self.options.conus1_download_dir):
-                    sys.exit(f'ERROR specified conus1 download directory {self.options.conus1_download_dir} does not exist {fname_yaml_input}')
-            except ValueError:
-                sys.exit(f'ERROR invalid {name_var} {userinput[name_var]} in {fname_yaml_input}')
-        #
-        #
-        name_var = 'conus1_domain'
-        if name_var in userinput:
-            try:
-                self.fnames.conus1_domain = userinput[name_var]
-                if not os.path.isfile(self.fnames.conus1_domain):
-                    sys.exit(f'ERROR specified conus1 domain file {self.fnames.conus1_domain} does not exist {fname_yaml_input}')
-            except ValueError:
-                sys.exit(f'ERROR invalid {name_var} {userinput[name_var]} in {fname_yaml_input}')
-        #
-        #
-        name_var = 'usedask'
-        if name_var in userinput and str(userinput[name_var]).upper().find('TRUE') != -1:
-            self.options.usedask = True
-        #
-        #
-        name_var = 'dem'
-        if name_var in userinput:
-            try:
-                self.fnames.dem_namelist_input = userinput[name_var]
-                if not os.path.isfile(self.fnames.dem_namelist_input):
-                    sys.exit(f'ERROR specified dem file {self.fnames.dem_namelist_input} does not exist {fname_yaml_input}')
-            except ValueError:
-                sys.exit(f'ERROR invalid {name_var} {userinput[name_var]} in {fname_yaml_input}')
-        #
-        #
-        name_var = 'soil_texture'
-        if name_var in userinput:
-            try:
-                self.fnames.soil_texture_namelist_input = userinput[name_var]
-                if not os.path.isfile(self.fnames.soil_texture_namelist_input):
-                    sys.exit(f'ERROR specified soil texture file {self.fnames.soil_texture_namelist_input} does not exist {fname_yaml_input}')
-            except ValueError:
-                sys.exit(f'ERROR invalid {name_var} {userinput[name_var]} in {fname_yaml_input}')
+                raise ValueError(f'ERROR invalid dem_rez {userinput["dem_rez"]} in {fname_yaml_input}')
+        self.options.verbose_wbe = str(userinput.get('verbose_wbe', '')).upper().find('TRUE') != -1
+        if 'conus1_download_dir' in userinput:
+            self.options.conus1_download_dir = Path(userinput['conus1_download_dir'])
+            if not self.options.conus1_download_dir.is_dir():
+                raise FileNotFoundError(f'ERROR specified conus1 download directory {self.options.conus1_download_dir} does not exist {fname_yaml_input}')
+        if 'conus1_domain' in userinput:
+            self.fnames.conus1_domain = Path(userinput['conus1_domain'])
+            if not self.fnames.conus1_domain.is_file():
+                raise FileNotFoundError(f'ERROR specified conus1 domain file {self.fnames.conus1_domain} does not exist {fname_yaml_input}')
+        self.options.usedask = str(userinput.get('usedask', '')).upper().find('TRUE') != -1
+        if 'dem' in userinput:
+            self.fnames.dem_namelist_input = Path(userinput['dem'])
+            if not self.fnames.dem_namelist_input.is_file():
+                raise FileNotFoundError(f'ERROR specified dem file {self.fnames.dem_namelist_input} does not exist {fname_yaml_input}')
+        if 'soil_texture' in userinput:
+            self.fnames.soil_texture_namelist_input = Path(userinput['soil_texture'])
+            if not self.fnames.soil_texture_namelist_input.is_file():
+                raise FileNotFoundError(f'ERROR specified soil texture file {self.fnames.soil_texture_namelist_input} does not exist {fname_yaml_input}')
 
         

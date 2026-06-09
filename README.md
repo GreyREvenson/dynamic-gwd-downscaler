@@ -73,7 +73,7 @@ verbose: True                   # Enable detailed logging
 
 ### Project Structure
 
-**Core modules implement the downscaling pipeline**:
+**Core modules**:
 
 - **`twtmain.py`**: Main orchestration—coordinates data retrieval and downscaling workflow
 - **`twtdomain.py`**: Domain definition and spatial clipping
@@ -83,6 +83,33 @@ verbose: True                   # Enable detailed logging
 - **`twtcalc.py`**: **Core downscaling and stream classification logic** — applies topmodel-based methods to refine water table depth using terrain and soil properties
 - **`twtnamelist.py`**: Configuration file parsing
 - **`twtmapfolium.py`**: Visualization using Folium maps
+
+**Working directory**:
+
+```
+input/
+├── wtd/  # Raw, coarse-scale groundwater-depth simulation grids
+│   ├── inundation_*.tiff # (one grid per time step)
+│   └── ...
+├── twi.tiff      # Topographic Wetness Index (dimensionless terrain metric)
+├── twi_mean.tiff # Mean TWI by soil map unit
+├── facc_ncells.tiff # Flow accumulation (cells)
+├── facc_sca.tiff # Specific Catchment Area (m²/m)
+├── dem.tiff # Unmodified DEM
+├── dem_breached.tiff # hydro-conditioned DEM
+├── slope.tiff    # Terrain slope
+├── soil_texture.gpkg # Downsampled soil data
+├── soil_transmissivity.gpkg # Soil transmissivity (saturated conductivity × thickness)
+└── stream_mask.tiff # Binary stream channel mask
+output/
+├── raw/              # Intermediate downscaling products
+│   ├── inundation_*.tiff (one grid per time step)
+│   └── ...
+└── summary/          # Summary downscaling outputs
+    ├── percent_inundation_*_to_*.tiff # Percent inundation grid (% of time period)
+    ├── perennial_strms_*_to_*.tiff # Perennial streams
+    └── nonperennial_strms_*_to_*.tiff # Non-perennial streams
+```
 
 ## Examples
 
@@ -123,41 +150,6 @@ pytest -v              # Verbose output
 - Unit tests for individual modules
 - Mock tests for external API calls
 - 17 tests total, all passing
-
-## Model directory
-
-After running an analysis, outputs are organized as:
-
-```
-input/
-├── wtd/  # Raw, coarse-scale groundwater-depth simulation grids
-│   ├── inundation_*.tiff # (one grid per time step)
-│   └── ...
-├── twi.tiff      # Topographic Wetness Index (dimensionless terrain metric)
-├── twi_mean.tiff # Mean TWI by soil map unit
-├── facc_ncells.tiff # Flow accumulation (cells)
-├── facc_sca.tiff # Specific Catchment Area (m²/m)
-├── dem.tiff # Unmodified DEM
-├── dem_breached.tiff # hydro-conditioned DEM
-├── slope.tiff    # Terrain slope
-├── soil_texture.gpkg # Downsampled soil data
-├── soil_transmissivity.gpkg # Soil transmissivity (saturated conductivity × thickness)
-└── stream_mask.tiff # Binary stream channel mask
-output/
-├── raw/              # Intermediate downscaling products
-│   ├── inundation_*.tiff (one grid per time step)
-│   └── ...
-└── summary/          # Summary downscaling outputs
-    ├── percent_inundation_*_to_*.tiff # Percent inundation grid (% of time period)
-    ├── perennial_strms_*_to_*.tiff # Perennial streams
-    └── nonperennial_strms_*_to_*.tiff # Non-perennial streams
-```
-
-**Key outputs explained**:
-- **TWI**: Topographic Wetness Index used in downscaling (higher values = wetter convergent areas)
-- **groundwater_depth_downscaled**: Water table depth refined from coarse resolution to fine scale using topmodel assumptions
-- **stream_classification**: Reaches classified as perennial (water table > surface), intermittent, or ephemeral based on downscaling predictions
-- **water_surface_intersection**: Probability or certainty that groundwater intersects surface
 
 ## Data Requirements
 
@@ -212,7 +204,7 @@ The tool can work with pre-existing files placed in `input/` directories, or aut
 
 ## Notes
 
-- Hydro-conditioned DEM created using [whitebox least-cost breaching](https://www.whiteboxgeo.com/manuals/api/python/api-tools-reference.html?highlight=least%20cost%20fill#breach_depressions_least_cost)
+- DEM hydroconditioning via [whitebox least-cost breach algorithm](https://www.whiteboxgeo.com/manuals/api/python/api-tools-reference.html?highlight=least%20cost%20fill#breach_depressions_least_cost)
 
 ## Contact
 

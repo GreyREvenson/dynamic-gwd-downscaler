@@ -124,29 +124,33 @@ pytest -v              # Verbose output
 - Mock tests for external API calls
 - 17 tests total, all passing
 
-## Output Structure
+## Model directory
 
 After running an analysis, outputs are organized as:
 
 ```
+input/
+├── wtd/  # Raw, coarse-scale groundwater-depth simulation grids
+│   ├── inundation_*.tiff # (one grid per time step)
+│   └── ...
+├── twi.tiff      # Topographic Wetness Index (dimensionless terrain metric)
+├── twi_mean.tiff # Mean TWI by soil map unit
+├── facc_ncells.tiff # Flow accumulation (cells)
+├── facc_sca.tiff # Specific Catchment Area (m²/m)
+├── dem.tiff # Unmodified DEM
+├── dem_breached.tiff # hydro-conditioned DEM
+├── slope.tiff    # Terrain slope
+├── soil_texture.gpkg # Downsampled soil data
+├── soil_transmissivity.gpkg # Soil transmissivity (saturated conductivity × thickness)
+└── stream_mask.tiff # Binary stream channel mask
 output/
 ├── raw/              # Intermediate downscaling products
-│   ├── twi.tiff      # Topographic Wetness Index (dimensionless terrain metric)
-│   ├── twi_mean.tiff # Mean TWI by soil map unit
-│   ├── facc_ncells.tiff # Flow accumulation (cells)
-│   ├── facc_sca.tiff # Specific Catchment Area (m²/m)
-│   ├── dem.tiff # Unmodified DEM
-│   ├── dem_breached.tiff # hydro-conditioned DEM
-│   ├── slope.tiff    # Terrain slope
-│   ├── soil_texture.gpkg # Downsampled soil data
-│   ├── soil_transmissivity.gpkg # Soil transmissivity (saturated conductivity × thickness)
-│   ├── stream_mask.tiff # Binary stream channel mask
+│   ├── inundation_*.tiff (one grid per time step)
 │   └── ...
-└── summary/          # Final downscaling results
-    ├── groundwater_depth_downscaled.tiff # Refined water table depth at fine scale
-    ├── stream_classification.gpkg # Stream reaches classified by permanence
-    ├── water_surface_intersection.tiff # Predicted groundwater-surface intersections
-    └── analysis_summary.json # Summary statistics
+└── summary/          # Summary downscaling outputs
+    ├── percent_inundation_*_to_*.tiff # Percent inundation grid (% of time period)
+    ├── perennial_strms_*_to_*.tiff # Perennial streams
+    └── nonperennial_strms_*_to_*.tiff # Non-perennial streams
 ```
 
 **Key outputs explained**:

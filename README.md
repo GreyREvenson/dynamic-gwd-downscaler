@@ -136,7 +136,7 @@ output/
 │   ├── facc_ncells.tiff # Flow accumulation (cells)
 │   ├── facc_sca.tiff # Specific Catchment Area (m²/m)
 │   ├── dem.tiff # Unmodified DEM
-│   ├── dem_breached.tiff # hydro-conditioned DEM (via. [whitebox least-cost breaching](https://www.whiteboxgeo.com/manuals/api/python/api-tools-reference.html?highlight=least%20cost%20fill#breach_depressions_least_cost))
+│   ├── dem_breached.tiff # hydro-conditioned DEM
 │   ├── slope.tiff    # Terrain slope
 │   ├── soil_texture.gpkg # Downsampled soil data
 │   ├── soil_transmissivity.gpkg # Soil transmissivity (saturated conductivity × thickness)
@@ -205,6 +205,10 @@ The tool can work with pre-existing files placed in `input/` directories, or aut
 - **Uncertainty Quantification**: Propagate uncertainty from coarse simulations through downscaling
 - **Enhanced Transmissivity Models**: Incorporate 3D soil property variation and bedrock depth
 - **Cloud Optimization**: Cloud-optimized GeoTIFF support and cloud-based processing for large datasets
+
+## Notes
+
+- Hydro-conditioned DEM created using [whitebox least-cost breaching](https://www.whiteboxgeo.com/manuals/api/python/api-tools-reference.html?highlight=least%20cost%20fill#breach_depressions_least_cost))
 
 ## Contact
 

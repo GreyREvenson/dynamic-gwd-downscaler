@@ -1,8 +1,8 @@
 # Description
 
-A Python-based tool that uses high-resolution topography, soil properties, and topmodel-principles to downscale dynamic coarse-resolution groundwater depth simulations and observations and predict fine-resolution groundwater-surface intersection dynamics (i.e., 'inundation') to identify wetlands and non-perennial streams.
+A Python-based tool that uses high-resolution topography, soil properties, and topmodel-principles to downscale dynamic coarse-resolution groundwater depth simulations and observations and predict fine-resolution groundwater-surface intersection dynamics (i.e., 'inundation') and identify wetlands and non-perennial streams.
 
-**Core methodology**: The tool uses the Topographic Wetness Index (TWI) and soil transmissivity to model the spatial distribution of water table depth within coarse grid cell. Where the downscaled water table intersects or rises above the land surface, wetlands and streams are predicted. The tool integrates:
+**Core methodology**: The tool uses the Topographic Wetness Index (TWI) and soil transmissivity to model the spatial distribution of water table depth within coarse grid cells. Where the downscaled water table intersects or rises above the land surface, wetlands and streams are predicted. The tool integrates:
 
 - **Coarse Groundwater Simulations**: E.g., Water table depth from ParFlow-CLM simulations
 - **High-Resolution Topography**: DEMs to compute terrain wetness indices and flow networks

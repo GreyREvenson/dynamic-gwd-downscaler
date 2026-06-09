@@ -1,6 +1,6 @@
 import math
+import logging
 import os
-import sys
 import math
 import datetime
 import geopandas
@@ -10,6 +10,8 @@ import numpy
 import twtnamelist
 import rioxarray
 
+logger = logging.getLogger(__name__)
+
 def hf_query_nc(*,
     dt_start: datetime.datetime,
     dt_end: datetime.datetime,
@@ -18,7 +20,8 @@ def hf_query_nc(*,
     huc_id: str = None,
     domain: geopandas.GeoDataFrame = None):
 
-    if verbose: print('calling hf_query')
+    if verbose:
+        logger.info('calling hf_query')
     if not os.path.isdir(savedir): 
         os.makedirs(savedir,exist_ok=True)
     start_date_str = dt_start.strftime('%Y-%m-%d')
@@ -85,7 +88,8 @@ def break_conus1_tiffs(*,
                        compress: str = 'zstd',
                        level: int = 9):
     
-    if verbose: print('calling break_conus1_tiffs')
+    if verbose:
+        logger.info('calling break_conus1_tiffs')
     os.makedirs(wtd_out_dir,exist_ok=True)
     conus1_proj, _, _, _ = _get_parflow_conus1_grid_info()
     geom = domain.to_crs(conus1_proj).geometry.union_all()
@@ -115,11 +119,12 @@ def download_hydroframe_data(*,
     compress: str = 'zstd',
     level: int = 9):
 
-    if verbose: print('calling download_hydroframe_data')
+    if verbose:
+        logger.info('calling download_hydroframe_data')
     if not os.path.isdir(dir_wtd): 
         os.makedirs(dir_wtd,exist_ok=True)
     if verbose: 
-        print(f' using hf_hydrodata to download parflow water table depth simulations to {dir_wtd}')
+        logger.info(f'using hf_hydrodata to download parflow water table depth simulations to {dir_wtd}')
     conus1_proj, _, conus1_transform, conus1_shape = _get_parflow_conus1_grid_info()
     domain = geopandas.GeoDataFrame(domain.drop(columns=['geometry']), 
                                     geometry=domain.to_crs(conus1_proj).buffer(distance=1000),              
@@ -184,8 +189,10 @@ def _get_parflow_conus1_bbox(domain:geopandas.GeoDataFrame):
 
 def _set_parflow_conus2_bbox(namelist:twtnamelist.Namelist):
     """Set domain ParFlow bounding box"""
-    if namelist.options.verbose: print('calling _get_parflow_conus2_bbox')
-    if not os.path.isfile(namelist.fnames.domain): sys.exit('ERROR could not find '+namelist.fnames.domain)
+    if namelist.options.verbose:
+        logger.info('calling _get_parflow_conus2_bbox')
+    if not os.path.isfile(namelist.fnames.domain):
+        raise FileNotFoundError(f'could not find {namelist.fnames.domain}')
     conus2grid_minx, conus2grid_miny = hf_hydrodata.from_latlon("conus2", namelist.bbox_domain.lat_min, namelist.bbox_domain.lon_min)
     conus2grid_maxx, conus2grid_maxy = hf_hydrodata.from_latlon("conus2", namelist.bbox_domain.lat_max, namelist.bbox_domain.lon_max)
     conus2grid_minx, conus2grid_miny = math.floor(conus2grid_minx), math.floor(conus2grid_miny)
@@ -214,7 +221,8 @@ def get_conus1_tiffs(*,
     savedir: str,
     verbose: bool = False):
     
-    if verbose: print('calling get_conus1_tiffs')
+    if verbose:
+        logger.info('calling get_conus1_tiffs')
     if not os.path.isdir(savedir): 
         os.makedirs(savedir,exist_ok=True)
     options_wtd = {"dataset"             : "conus1_baseline_mod",
@@ -222,7 +230,7 @@ def get_conus1_tiffs(*,
     idatetime = dt_start
     while idatetime <= dt_end:
         if verbose: 
-            print(f' working on {idatetime.strftime('%Y-%m-%d')}')
+            logger.info(f'working on {idatetime.strftime('%Y-%m-%d')}')
         options_wtd["start_time"] = idatetime.strftime('%Y-%m-%d')
         options_wtd["end_time"]   = idatetime.strftime('%Y-%m-%d')
         fname = os.path.join(savedir,
@@ -235,5 +243,5 @@ def get_conus1_tiffs(*,
                                                 verbose=True)
                     break
                 except Exception as e:
-                    sys.stderr.write(f'ERROR: hf_hydrodata.get_gridded_files call failed for date {idatetime.strftime('%Y-%m-%d')} with error: {str(e)}\n')
+                    logger.error(f'ERROR: hf_hydrodata.get_gridded_files call failed for date {idatetime.strftime('%Y-%m-%d')} with error: {e}')
         idatetime += datetime.timedelta(days=1)

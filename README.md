@@ -1,8 +1,8 @@
 # Description
 
-A Python-based tool that uses high-resolution topography, soil properties, and topmodel-principles to downscale dynamic coarse-resolution groundwater depth simulations and observations and predict fine-resolution groundwater-surface intersection dynamics (i.e., 'inundation') to identify wetlands and non-perennial streams.
+A Python-based tool that uses high-resolution topography, soil properties, and topmodel-principles to downscale dynamic coarse-resolution groundwater depth simulations and observations and predict fine-resolution groundwater-surface intersection dynamics (i.e., 'inundation') and identify wetlands and non-perennial streams.
 
-**Core methodology**: The tool uses the Topographic Wetness Index (TWI) and soil transmissivity to model the spatial distribution of water table depth within coarse grid cell. Where the downscaled water table intersects or rises above the land surface, wetlands and streams are predicted. The tool integrates:
+**Core methodology**: The tool uses the Topographic Wetness Index (TWI) and soil transmissivity to model the spatial distribution of water table depth within coarse grid cells. Where the downscaled water table intersects or rises above the land surface, wetlands and streams are predicted. The tool integrates:
 
 - **Coarse Groundwater Simulations**: E.g., Water table depth from ParFlow-CLM simulations
 - **High-Resolution Topography**: DEMs to compute terrain wetness indices and flow networks
@@ -73,7 +73,7 @@ verbose: True                   # Enable detailed logging
 
 ### Project Structure
 
-**Core modules implement the downscaling pipeline**:
+**Core modules**:
 
 - **`twtmain.py`**: Main orchestration—coordinates data retrieval and downscaling workflow
 - **`twtdomain.py`**: Domain definition and spatial clipping
@@ -83,6 +83,33 @@ verbose: True                   # Enable detailed logging
 - **`twtcalc.py`**: **Core downscaling and stream classification logic** — applies topmodel-based methods to refine water table depth using terrain and soil properties
 - **`twtnamelist.py`**: Configuration file parsing
 - **`twtmapfolium.py`**: Visualization using Folium maps
+
+**Working directory**:
+
+```
+input/
+├── wtd/  # Raw, coarse-scale groundwater-depth simulation grids
+│   ├── inundation_*.tiff # (one grid per time step)
+│   └── ...
+├── twi.tiff      # Topographic Wetness Index (dimensionless terrain metric)
+├── twi_mean.tiff # Mean TWI by soil map unit
+├── facc_ncells.tiff # Flow accumulation (cells)
+├── facc_sca.tiff # Specific Catchment Area (m²/m)
+├── dem.tiff # Unmodified DEM
+├── dem_breached.tiff # hydro-conditioned DEM
+├── slope.tiff    # Terrain slope
+├── soil_texture.gpkg # Downsampled soil data
+├── soil_transmissivity.gpkg # Soil transmissivity (saturated conductivity × thickness)
+└── stream_mask.tiff # Binary stream channel mask
+output/
+├── raw/              # Intermediate downscaling products
+│   ├── inundation_*.tiff (one grid per time step)
+│   └── ...
+└── summary/          # Summary downscaling outputs
+    ├── percent_inundation_*_to_*.tiff # Percent inundation grid (% of time period)
+    ├── perennial_strms_*_to_*.tiff # Perennial streams
+    └── nonperennial_strms_*_to_*.tiff # Non-perennial streams
+```
 
 ## Examples
 
@@ -123,37 +150,6 @@ pytest -v              # Verbose output
 - Unit tests for individual modules
 - Mock tests for external API calls
 - 17 tests total, all passing
-
-## Output Structure
-
-After running an analysis, outputs are organized as:
-
-```
-output/
-├── raw/              # Intermediate downscaling products
-│   ├── twi.tiff      # Topographic Wetness Index (dimensionless terrain metric)
-│   ├── twi_mean.tiff # Mean TWI by soil map unit
-│   ├── facc_ncells.tiff # Flow accumulation (cells)
-│   ├── facc_sca.tiff # Specific Catchment Area (m²/m)
-│   ├── dem.tiff # Unmodified DEM
-│   ├── dem_breached.tiff # hydro-conditioned DEM
-│   ├── slope.tiff    # Terrain slope
-│   ├── soil_texture.gpkg # Downsampled soil data
-│   ├── soil_transmissivity.gpkg # Soil transmissivity (saturated conductivity × thickness)
-│   ├── stream_mask.tiff # Binary stream channel mask
-│   └── ...
-└── summary/          # Final downscaling results
-    ├── groundwater_depth_downscaled.tiff # Refined water table depth at fine scale
-    ├── stream_classification.gpkg # Stream reaches classified by permanence
-    ├── water_surface_intersection.tiff # Predicted groundwater-surface intersections
-    └── analysis_summary.json # Summary statistics
-```
-
-**Key outputs explained**:
-- **TWI**: Topographic Wetness Index used in downscaling (higher values = wetter convergent areas)
-- **groundwater_depth_downscaled**: Water table depth refined from coarse resolution to fine scale using topmodel assumptions
-- **stream_classification**: Reaches classified as perennial (water table > surface), intermittent, or ephemeral based on downscaling predictions
-- **water_surface_intersection**: Probability or certainty that groundwater intersects surface
 
 ## Data Requirements
 
@@ -208,7 +204,7 @@ The tool can work with pre-existing files placed in `input/` directories, or aut
 
 ## Notes
 
-- Hydro-conditioned DEM created using [whitebox least-cost breaching](https://www.whiteboxgeo.com/manuals/api/python/api-tools-reference.html?highlight=least%20cost%20fill#breach_depressions_least_cost)
+- DEM hydroconditioning via [whitebox least-cost breach algorithm](https://www.whiteboxgeo.com/manuals/api/python/api-tools-reference.html?highlight=least%20cost%20fill#breach_depressions_least_cost)
 
 ## Contact
 
